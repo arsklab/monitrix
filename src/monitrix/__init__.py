@@ -16,6 +16,4 @@
 # This package uses Ultralytics which is licensed under the AGPL-3.0 license.
 
 
-__version__ = "0.0.0.dev0"
-
-
+__version__ = "0.0.2.dev0"

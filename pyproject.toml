@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 61.0"]#, "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,12 +7,11 @@ name = "monitrix"
 # version = "0.0.0.dev0"
 dynamic = ["version"]
 dependencies = [
-    "numpy",
-    "opencv-python",
-    "tqdm",
-    "easyocr",
-    "matplotlib",
-    "labelme2yolo",
+    "numpy>=1.25.0",
+    "opencv-python>=4.5.0",
+    "tqdm>=4.65.0",
+    "easyocr>=1.7.0",
+    "labelme2yolo>=0.2.5",
 ]
 requires-python = ">= 3.10"
 description = "An advanced monitoring tool with OCR and image recognition capabilities"
@@ -67,4 +66,5 @@ monitrix_predict = "monitrix.command.cil:predict"
 monitrix_predict_video = "monitrix.command.cil:predict_video"
 
 
-
+[tool.setuptools.dynamic]
+version = {attr = "monitrix.__version__"}

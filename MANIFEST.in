@@ -1,0 +1,5 @@
+include monitrix/weights/*.pt
+include monitrix/weights/*.pth
+include monitrix/weights/*.py
+recursive-include monitrix/weights *
+global-include *.pt *.pth *.py
