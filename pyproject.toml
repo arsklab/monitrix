@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "monitrix"
+# version = "0.0.0.dev0"
+dynamic = ["version"]
+dependencies = [
+    "numpy",
+    "opencv-python",
+    "tqdm",
+    "easyocr",
+    "matplotlib",
+    "labelme2yolo",
+]
+requires-python = ">= 3.10"
+description = "An advanced monitoring tool with OCR and image recognition capabilities"
+readme = "README.md"
+license = {text = "GNU Affero General Public License v3 or later (AGPLv3+)"}
+authors = [{name = "Arisaka Naoya", email = "arisakanaoya@gmail.com"},]
+keywords = ["monitoring", "ocr", "computer-vision", "yolo", "image-recognition"]
+classifiers = [
+    # Python versions
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    
+    # License
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    
+    # Development status
+    "Development Status :: 4 - Beta",
+    
+    # Operating system
+    "Operating System :: OS Independent",
+    
+    # Topics
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    
+    # Intended audience
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    
+    # Environment
+    "Environment :: Console",
+    
+    # Natural Language
+    "Natural Language :: English",
+    "Natural Language :: Japanese",
+]
+
+[project.urls]
+Homepage = "https://github.com/arsklab/monitrix"
+Source = "https://github.com/arsklab/monitrix"
+Issues = "https://github.com/arsklab/monitrix/issues"
+
+[tool]
+[tool.setuptools.packages.find]
+where = ["src/"]
+
+
+[project.scripts]
+monitrix_predict = "monitrix.command.cil:predict"
+monitrix_predict_video = "monitrix.command.cil:predict_video"
+
+
+
