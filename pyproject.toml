@@ -7,11 +7,12 @@ name = "monitrix"
 # version = "0.0.0.dev0"
 dynamic = ["version"]
 dependencies = [
-    "numpy>=1.25.0",
-    "opencv-python>=4.5.0",
-    "tqdm>=4.65.0",
+    "ultralytics>=8.3.0",
     "easyocr>=1.7.0",
-    "labelme2yolo>=0.2.5",
+    "opencv-python>=4.5.0",
+    "numpy>=1.25.0",
+    "tqdm>=4.65.0",
+    # "labelme2yolo>=0.2.5",
 ]
 requires-python = ">= 3.10"
 description = "An advanced monitoring tool with OCR and image recognition capabilities"
