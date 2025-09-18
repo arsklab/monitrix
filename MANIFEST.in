@@ -1,5 +1,4 @@
-include monitrix/weights/*.pt
-include monitrix/weights/*.pth
-include monitrix/weights/*.py
+include monitrix/objectdetector/weights/*.pt
+include monitrix/numberdetecto/weights*.pth
 recursive-include monitrix/weights *
 global-include *.pt *.pth *.py
