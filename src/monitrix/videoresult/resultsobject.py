@@ -126,11 +126,18 @@ class VideoResults(list[ResultsProtocol]):
     def to_csv(self, decimals: int = 6, /, **kwargs):
         return self.to_df(decimals=decimals).to_csv(**kwargs)
 
-    def to_video(self, output_path: str | Path, resize: float = 1, fps: float = 30):
+    def to_video(
+        self,
+        output_path: str | Path,
+        resize: float = 1,
+        fps: float = 30,
+        trues: dict[int, dict[int, int | float]] | None = None,
+    ):
         _size: tuple[int, int] = tuple(int(s * resize) for s in self.size[::-1])
 
         with VideoWriter(*_size, fps, Path(output_path)) as writer:
             with tqdm(total=len(self), desc="write frame", leave=True) as pbar:
+                _trues = {} if trues is None else trues
                 for frame in self:
                     if resize != 1:
                         writer.write(
@@ -139,6 +146,7 @@ class VideoResults(list[ResultsProtocol]):
                                     frame,
                                     class_names=self.preset_classnames,
                                     colors=self.preset_colors,
+                                    trues=_trues.get(frame.frame_no, None),
                                 ),
                                 _size,
                             )
@@ -149,6 +157,7 @@ class VideoResults(list[ResultsProtocol]):
                                 frame,
                                 class_names=self.preset_classnames,
                                 colors=self.preset_colors,
+                                trues=_trues.get(frame.frame_no, None),
                             )
                         )
                     pbar.update()

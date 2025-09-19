@@ -327,6 +327,7 @@ class mdataframe(pd.DataFrame):
         figsize: tuple[int, int] = (12, 8),
         class_names: dict[int, str] | None = None,
         class_units: dict[int, str] | None = None,
+        scores: dict[str, tuple[str, str | None]] | None = None,
         value_line_width: float = 1,
         conf_line_width: float = 0.5,
         conf_line_alpha: float = 0.2,
@@ -337,6 +338,8 @@ class mdataframe(pd.DataFrame):
 
         x_min, x_max = self["frame"].min(), self["frame"].max()
         no_monitor_mask = self["is_monitor"].fillna(False)
+        if (scores is not None) and ("true_value" in self.keys()):
+            _metrics = {m.key: m for m in self.metrics(["monitor_id", "class"])}
         for _id, monitor in self[~no_monitor_mask].groupby("monitor_id", dropna=False):
             classes = sorted(monitor["class"].unique())
             fig, line_axs = plt.subplots(len(classes), 1, sharex=True, figsize=figsize)
@@ -412,7 +415,8 @@ class mdataframe(pd.DataFrame):
                         linewidths=0.5,
                         zorder=0,
                     )
-                    n_miss = values["true_value"][mask & values["pred_value"].isna()]
+                    mask = mask & values["pred_value"].isna()
+                    n_miss = values["true_value"][mask]
                     ax.scatter(
                         values["frame"][mask],
                         n_miss,
@@ -423,6 +427,20 @@ class mdataframe(pd.DataFrame):
                         linewidths=0.5,
                         zorder=0,
                     )
+
+                    if scores is not None:
+                        if _metric := _metrics.get((int(_id), int(cls))):
+                            _score = _metric.scores()
+                            _legends = []
+                            for k, v in scores.items():
+                                if k in _score.keys():
+                                    _value = _score[k]
+                                    _label = v[0]
+                                    if fmt := v[1]:
+                                        _legends.append(f"{_label}{_value:{fmt}}")
+                                    else:
+                                        _legends.append(f"{_label}{_value}")
+                            ax.legend(["\n".join(_legends)], handlelength=0)
 
             fig.supxlabel("frame")
             fig.supylabel("conf area", x=1.0)
