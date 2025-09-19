@@ -18,7 +18,8 @@ dependencies = [
 ]
 requires-python = ">= 3.10"
 description = "An advanced monitoring tool with OCR and image recognition capabilities"
-# readme = "README.md"
+readme = "README.md"
+
 license = { text = "GNU Affero General Public License v3 or later (AGPLv3+)" }
 authors = [{ name = "Arisaka Naoya", email = "arisakanaoya@gmail.com" }]
 keywords = ["monitoring", "ocr", "computer-vision", "yolo", "image-recognition"]
@@ -52,10 +53,10 @@ classifiers = [
     "Natural Language :: Japanese",
 ]
 
-# [project.urls]
-# Homepage = "https://github.com/arsklab/monitrix"
-# Source = "https://github.com/arsklab/monitrix"
-# Issues = "https://github.com/arsklab/monitrix/issues"
+[project.urls]
+Homepage = "https://github.com/arsklab/monitrix"
+Source = "https://github.com/arsklab/monitrix"
+Issues = "https://github.com/arsklab/monitrix/issues"
 
 [tool]
 [tool.setuptools.packages.find]
