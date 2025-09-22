@@ -300,15 +300,19 @@ class mdataframe(pd.DataFrame):
             )
         )
 
-    def metrics(self, group: str | list[str] | None = None) -> metric | metrics:
+    def metrics(self, group: str | list[str] | None = None) -> metrics:
         if not "true_value" in self.keys():
             raise ValueError
 
         if group is None:
-            return metric(
-                self["true_value"],
-                self["pred_value"],
-                self["object_conf"] * self["ocr_conf"],
+            return metrics(
+                [
+                    metric(
+                        self["true_value"],
+                        self["pred_value"],
+                        self["object_conf"] * self["ocr_conf"],
+                    )
+                ]
             )
         return metrics(
             [
@@ -340,7 +344,9 @@ class mdataframe(pd.DataFrame):
         no_monitor_mask = self["is_monitor"].fillna(False)
         if (scores is not None) and ("true_value" in self.keys()):
             _metrics = {m.key: m for m in self.metrics(["monitor_id", "class"])}
-        for _id, monitor in self[~no_monitor_mask].groupby("monitor_id", dropna=False):
+        for _id, monitor in self[~no_monitor_mask].groupby(
+            "monitor_id", dropna=True
+        ):  # , dropna=False):
             classes = sorted(monitor["class"].unique())
             fig, line_axs = plt.subplots(len(classes), 1, sharex=True, figsize=figsize)
 

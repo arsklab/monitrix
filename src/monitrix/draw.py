@@ -342,7 +342,7 @@ def plot(
                         fill_color, text_color = (
                             colors if colors is not None else {}
                         ).get(int(cls), (default_fill_color, default_text_color))
-
+                        _thickness = thickness
                         if flag == 1:  # モニタ
                             text = f"id={int(_id)}"
                             loc = "top"
@@ -353,12 +353,12 @@ def plot(
                             true_value = (trues if trues is not None else {}).get(
                                 int(_id), number
                             )
-                            if true_value != number:
+                            if not nan_equal(true_value, number):
                                 miss_flag = True
                                 text = "x " + text + f"({true_value})"
                                 fill_color = "#FF0000"
                                 text_color = "#FFFFFF"
-                                thickness = thickness * 5
+                                _thickness = thickness * 2
 
                         if isinstance(fill_color, str):
                             fill_color = bgr(fill_color)
@@ -369,7 +369,7 @@ def plot(
                             mask,
                             fill_color,
                             alpha=area_alpha,
-                            thickness=thickness,
+                            thickness=_thickness,
                         )
                         image = points(
                             image,
@@ -438,3 +438,18 @@ def rgb(color: str) -> tuple[int, int, int]:
 
 def bgr(color: str) -> tuple[int, int, int]:
     return rgb(color)[::-1]
+
+
+def nan_equal(a, b) -> bool:
+    """NaNを考慮した等価判定
+    nan != nan # Trueを回避
+    """
+    # 両方がNaNの場合はTrue
+    if np.isnan(a) and np.isnan(b):
+        return True
+    # 両方がNaNでない場合は通常の比較
+    elif not np.isnan(a) and not np.isnan(b):
+        return a == b
+    # 片方だけNaNの場合はFalse
+    else:
+        return False
