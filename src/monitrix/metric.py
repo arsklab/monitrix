@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Literal, Any
+from itertools import groupby
 
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics import confusion_matrix
@@ -454,3 +455,58 @@ class mdataframe(pd.DataFrame):
             fig.tight_layout()
             figs.append(fig)
         return figs
+
+    def metrics_summary(
+        self,
+        zero_division: Literal[0, 1] = 0,
+        group: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+
+        if isinstance(group, list) and (len(group) == 1):
+            group = group[0]
+        _ms = self.metrics(group)
+        key: tuple[str, ...] | str | None = _ms[0].key
+
+        if isinstance(key, tuple):
+            current_level = len(key)
+            cols = group
+            key_f = lambda _level: lambda x: x.key[:_level]
+            cols_f = lambda _keys: dict(zip(cols, _keys))
+        elif isinstance(key, (str, int, float)):
+            current_level = 1
+            cols = [group]
+            key_f = lambda _level: lambda x: x.key
+            cols_f = lambda _key: dict(zip(cols, [_key]))
+        elif key is None:
+            current_level = 0
+            cols = []
+            key_f = lambda _level: None
+            cols_f = lambda _key: dict()
+        else:
+            print(key)
+            raise ValueError
+
+        _values = []
+        if isinstance(key, tuple) or (key is None):
+            while current_level > -1:
+                for k, v in groupby(_ms, key=key_f(current_level)):
+                    _values.append(
+                        {
+                            "level": current_level,
+                            **cols_f(k),
+                            **metrics(v).scores(zero_division),
+                        }
+                    )
+                current_level -= 1
+        else:
+            for k, v in groupby(_ms, key=key_f(current_level)):
+                _values.append(
+                    {
+                        "level": current_level,
+                        **cols_f(k),
+                        **metrics(v).scores(zero_division),
+                    }
+                )
+            _values.append({"level": 0, **_ms.scores(zero_division)})
+
+        return pd.DataFrame(_values).set_index(["level"] + cols).sort_index()
