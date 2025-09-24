@@ -349,9 +349,10 @@ class mdataframe(pd.DataFrame):
             "monitor_id", dropna=True
         ):  # , dropna=False):
             classes = sorted(monitor["class"].unique())
-            fig, line_axs = plt.subplots(len(classes), 1, sharex=True, figsize=figsize)
-
-            for ax, cls in zip(line_axs, classes):
+            fig, line_axs = plt.subplots(
+                len(classes), 1, sharex=True, figsize=figsize, squeeze=False
+            )
+            for ax, cls in zip(line_axs.flatten(), classes):
                 as2 = ax.twinx()
                 ax.set_xlim(x_min, x_max)
 
