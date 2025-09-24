@@ -81,6 +81,12 @@ class PostProcess(ABC):
         インスタンスの状態は`reset`で初期化可能
         """
 
+    def __repr__(self) -> str:
+        return self.__class__.__name__
+
+    # def to_dict(self, only_param: bool = True) -> dict[str, Any]:
+    #     return {repr(self): self.config.to_dict(only_param)}
+
 
 class Text2Value(ABC):
     """数字→数値変換抽象クラス"""
@@ -202,10 +208,13 @@ class ConfigDataclass(Config):
 
     def to_dict(self, only_param: bool = True) -> dict[str, Any]:
         if only_param:
-            return {
-                f.name: getattr(self, f.name)
-                for f in fields(self)
-                if not f.metadata.get("private", False)
-            }
+            _d = {}
+            for f in fields(self):
+                if not f.metadata.get("private", False):
+                    value = getattr(self, f.name)
+                    if issubclass(value.__class__, ConfigDataclass):
+                        value = value.to_dict(only_param)
+                    _d[f.name] = value
+            return _d
         else:
             return asdict(self)

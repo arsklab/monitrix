@@ -245,5 +245,3 @@ class ImageGroupTextReader:
             return values.detach()  # .clone()
         else:
             return torch.tensor(values)
-
-

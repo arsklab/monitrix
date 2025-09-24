@@ -510,3 +510,14 @@ class mdataframe(pd.DataFrame):
             _values.append({"level": 0, **_ms.scores(zero_division)})
 
         return pd.DataFrame(_values).set_index(["level"] + cols).sort_index()
+
+
+def cheak(true_data: pd.DataFrame) -> bool:
+    """正解データのチェック"""
+    required_columns = {"frame", "monitor_id", "class", "true_value"}
+    assert required_columns.issubset(set(true_data.columns))
+
+    for col in required_columns:
+        # 数値データかどうか
+        assert pd.api.types.is_numeric_dtype(true_data[col])
+    return True

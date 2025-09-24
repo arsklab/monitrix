@@ -104,19 +104,24 @@ class VideoResults(list[ResultsProtocol]):
         return self[0].orig_shape
 
     def to_df(self, decimals: int = 6, cast: bool = True) -> pd.DataFrame | mdataframe:
-        _df = pd.DataFrame(
-            torch.round(
-                torch.cat([result.aggregate.data for result in self]), decimals=decimals
-            ).numpy(),
-            columns=self.columns,
-        ).astype(
-            {
-                "frame": int,
-                "id": int,
-                "class": int,
-                #  "monitor_id":int,
-                "is_monitor": bool,
-            }
+        _df = (
+            pd.DataFrame(
+                torch.round(
+                    torch.cat([result.aggregate.data for result in self]),
+                    decimals=decimals,
+                ).numpy(),
+                columns=self.columns,
+            )
+            .dropna(subset="id")
+            .astype(
+                {
+                    "frame": int,
+                    "id": int,
+                    "class": int,
+                    #  "monitor_id":int,
+                    "is_monitor": bool,
+                }
+            )
         )
         if cast:
             return mdataframe(_df)
