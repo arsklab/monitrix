@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TypeAlias, TypeVar, Generator, Any, Self
+from typing import TypeAlias, TypeVar, Generator, Any, Self, Generic
 import gc
 from contextlib import contextmanager
 from pathlib import Path
@@ -30,7 +30,7 @@ class Config(ABC):
     """設定抽象クラス"""
 
     @abstractmethod
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, only_param: bool = True) -> dict[str, Any]:
         """（設定情報の辞書化）"""
 
 
@@ -63,6 +63,7 @@ class PostProcess(ABC):
     @abstractmethod
     def __init__(self, config: Config) -> None:
         """初期化"""
+        self.config = config
 
     @abstractmethod
     def apply(self, results: list[R]) -> list[R]:
@@ -83,6 +84,9 @@ class PostProcess(ABC):
 
     def __repr__(self) -> str:
         return self.__class__.__name__
+
+    def get_config(self) -> dict[str, Any]:
+        return self.config.to_dict(False)
 
     # def to_dict(self, only_param: bool = True) -> dict[str, Any]:
     #     return {repr(self): self.config.to_dict(only_param)}
@@ -218,3 +222,36 @@ class ConfigDataclass(Config):
             return _d
         else:
             return asdict(self)
+
+
+class PostProcessPipeline(Generic[R]):
+    """PostProcessのパイプライン処理クラス"""
+
+    def __init__(self, config: Config, processors: list[PostProcess]):
+        self.processors = processors
+        self.config = config
+
+    def apply(self, results: list[R]) -> list[R]:
+        """バッチ処理をパイプライン実行"""
+        current_results = results
+        for processor in self.processors:
+            current_results = processor.apply(current_results)
+        return current_results
+
+    def stream(self, result: R) -> R:
+        """ストリーミング処理をパイプライン実行"""
+        current_result = result
+        for processor in self.processors:
+            current_result = processor.stream(current_result)
+        return current_result
+
+    def reset(self):
+        """全てのプロセッサーの状態をリセット"""
+        for processor in self.processors:
+            processor.reset()
+
+    def __repr__(self) -> str:
+        return "|".join(repr(processor) for processor in self.processors)
+
+    def get_config(self) -> dict[str, Any]:
+        return self.config.to_dict(False)

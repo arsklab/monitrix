@@ -357,6 +357,10 @@ class mdataframe(pd.DataFrame):
                 ax.set_xlim(x_min, x_max)
 
                 values = monitor[monitor["class"] == cls]
+                # 重複削除
+                values = values[
+                    ~values["frame"].duplicated(keep="first")
+                ]  # ソート済みを期待
                 # 欠損部分をnanで埋める
                 values = values.set_index("frame", drop=True).sort_index()
                 values = values.reindex(range(x_min, x_max + 1)).reset_index()

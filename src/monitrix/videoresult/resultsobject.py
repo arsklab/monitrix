@@ -103,7 +103,13 @@ class VideoResults(list[ResultsProtocol]):
     def size(self) -> tuple[int, int]:
         return self[0].orig_shape
 
-    def to_df(self, decimals: int = 6, cast: bool = True) -> pd.DataFrame | mdataframe:
+    def to_df(
+        self,
+        decimals: int = 6,
+        cast: bool = True,
+        sort: bool = True,
+        drop_duplicate: bool = True,
+    ) -> pd.DataFrame | mdataframe:
         _df = (
             pd.DataFrame(
                 torch.round(
@@ -123,6 +129,18 @@ class VideoResults(list[ResultsProtocol]):
                 }
             )
         )
+        if sort:
+            _df["conf_area"] = 1 - _df["object_conf"].fillna(1e-10) * _df[
+                "ocr_conf"
+            ].fillna(1e-10)
+            _df = (
+                _df.sort_values(["frame", "monitor_id", "class", "conf_area"])
+                .drop("conf_area", axis=1)
+                .reset_index(drop=True)
+            )
+        if drop_duplicate:
+            mask = _df.duplicated(["frame", "monitor_id", "class"], keep="first")
+            _df = _df[~mask].reset_index(drop=True)
         if cast:
             return mdataframe(_df)
         else:
