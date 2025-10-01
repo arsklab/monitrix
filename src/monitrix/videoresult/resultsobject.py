@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 import pandas as pd
 import torch
 import cv2
@@ -13,14 +14,14 @@ from monitrix.metric import mdataframe
 class VideoWriter:
     """動画保存クラス"""
 
-    # OpenCVのコーデックマッピング
-    CODEC_MAPPING = {
-        ".mp4": "mp4v",  # または 'avc1' (H.264)
-        ".avi": "XVID",
-        ".mov": "mp4v",
-    }
-
-    def __init__(self, width: int, height: int, fps: float, output_path: Path):
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        fps: float,
+        output_path: Path,
+        fourcc_code: Literal["h264", "mp4v", "avc1", "XVID"] = "h264",
+    ):
         """
         初期化
         Args:
@@ -28,7 +29,6 @@ class VideoWriter:
         """
 
         # コーデックの決定
-        fourcc_code = self.CODEC_MAPPING.get(output_path.suffix.lower(), "mp4v")
         fourcc = cv2.VideoWriter_fourcc(*fourcc_code)
 
         # VideoWriterの初期化
