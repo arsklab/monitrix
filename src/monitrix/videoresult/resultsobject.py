@@ -1,5 +1,7 @@
 from pathlib import Path
 from io import BytesIO
+from typing import Literal
+
 from PIL import Image
 
 import pandas as pd
