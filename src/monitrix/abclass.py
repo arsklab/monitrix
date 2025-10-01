@@ -47,14 +47,15 @@ class Detector(ABC):
         """検出の実行（推定実行）"""
 
     @contextmanager
-    def _cuda_context(self):
+    def _cuda_context(self, release: bool = True):
         """CUDA メモリ管理用のコンテキストマネージャー"""
         try:
             yield
         finally:
-            if torch.cuda is not None:
-                torch.cuda.empty_cache()
-            gc.collect()
+            if release:
+                if torch.cuda is not None:
+                    torch.cuda.empty_cache()
+                gc.collect()
 
 
 class PostProcess(ABC):

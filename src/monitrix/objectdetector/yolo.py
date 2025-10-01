@@ -299,6 +299,7 @@ class YOLOc300(Detector):
         source: Source | list[Source] | tuple[Source, ...],
         stream: bool = True,
         config: YOLOPredictConfig | None = None,
+        context_release: bool = True,
     ) -> Generator[exResults, None, None]:
         """
         YOLO推論を実行
@@ -311,7 +312,7 @@ class YOLOc300(Detector):
         Yields:
             R: 推論結果（CPUに移動済み）
         """
-        with self._cuda_context():
+        with self._cuda_context(context_release):
             if isinstance(self.config.tracker, list):
                 return self.defertrack(source, stream, config)
             else:

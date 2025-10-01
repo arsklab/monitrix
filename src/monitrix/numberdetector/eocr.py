@@ -338,12 +338,13 @@ class EasyocrNumberReader(NumberReader):
         source: list[np.ndarray] | np.ndarray,
         top_k: int | None = 1,
         batched: bool = True,
+        context_release: bool = True,
         **kwargs,
     ) -> Nums:
         """sourceが複数の画像で、batched=Falseの場合
         sizeが異なる画像を一枚一枚readnumberするので、Numのshapeを決定できない
         そのため(-1,-1)とする"""
-        with self._cuda_context():
+        with self._cuda_context(context_release):
             if isinstance(source, list):
                 if batched:
                     return self.readnumber_batch(source, top_k=top_k, **kwargs)
