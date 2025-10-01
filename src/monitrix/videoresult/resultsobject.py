@@ -1,14 +1,19 @@
 from pathlib import Path
-from typing import Literal
+from io import BytesIO
+from PIL import Image
+
 import pandas as pd
 import torch
 import cv2
 from tqdm import tqdm
 import numpy as np
+import h5py
 
 from monitrix.results_protocol import ResultsProtocol
 from monitrix.draw import plot
 from monitrix.metric import mdataframe
+from monitrix.numberdetector.eocr import Nums
+from monitrix.objectdetector.yolo import exResults
 
 
 class VideoWriter:
@@ -184,3 +189,73 @@ class VideoResults(list[ResultsProtocol]):
                             )
                         )
                     pbar.update()
+
+    def to_hdf5(self, output_path: str | Path, format: str = "jpeg", **kwargs):
+        with h5py.File(output_path, "w") as file:
+            for frame in self:
+                group = file.create_group(f"{frame.frame_no}")
+
+                # 属性
+                group.attrs["frame_no"] = frame.frame_no
+                group.attrs["path"] = frame.path
+                subgroup = group.create_group("speed")
+                for k, v in frame.speed.items():
+                    subgroup.attrs[k] = v
+                subgroup = group.create_group("names")
+                for k, v in frame.names.items():
+                    subgroup.attrs[str(k)] = v
+
+                # 画像
+                byte_io = BytesIO()
+                Image.fromarray(frame.orig_img).save(byte_io, format=format, **kwargs)
+                group.create_dataset(
+                    "orig_img",
+                    data=np.frombuffer(byte_io.getvalue(), dtype=np.uint8),
+                    compression="gzip",
+                )
+
+                # boxes
+                group.create_dataset(
+                    "boxes",
+                    data=frame.boxes.data,
+                    compression="gzip",
+                )
+                # masks
+                group.create_dataset(
+                    "masks",
+                    data=frame.masks.data,
+                    compression="gzip",
+                )
+                # ocrs
+                if frame.ocrs is not None:
+                    group.create_dataset(
+                        "ocrs",
+                        data=frame.ocrs.data,
+                        compression="gzip",
+                    )
+
+    @classmethod
+    def load_hdf5(
+        cls, output_path: str | Path, result_type: type[ResultsProtocol] = exResults
+    ) -> "VideoResults":
+        with h5py.File(output_path, "r") as file:
+            buf = []
+            for key in sorted(file.keys()):
+                group = file[key]
+                orig_img = np.array(Image.open(BytesIO(group["orig_img"][:].tobytes())))
+                data = dict(
+                    frame_no=group.attrs["frame_no"],
+                    path=group.attrs["path"],
+                    names={int(k): v for k, v in group["names"].attrs.items()},
+                    speed={k: v for k, v in group["speed"].attrs.items()},
+                    orig_img=orig_img,
+                    boxes=group["boxes"][:],
+                    masks=group["masks"][:],
+                    ocrs=(
+                        Nums(group["ocrs"][:], orig_img.shape[:2])
+                        if "ocrs" in group.keys()
+                        else None
+                    ),
+                )
+                buf.append(result_type(**data))
+        return VideoResults(buf)
