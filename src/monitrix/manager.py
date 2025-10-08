@@ -112,11 +112,9 @@ class ImageGroupTextReader:
             return [
                 self.crop(
                     _p_img,
-                    _projecter.transform(
-                        self.add_margin(
-                            self.bounding_rectangle(_projecter.transform(_xy)),
-                            bottom_margin_rate,
-                        )
+                    self.add_margin(
+                        self.bounding_rectangle(_projecter.transform(_xy)),
+                        bottom_margin_rate,
                     ).astype(int),
                 )
                 for _xy in xy_list
