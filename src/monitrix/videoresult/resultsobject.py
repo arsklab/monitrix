@@ -27,7 +27,7 @@ class VideoWriter:
         height: int,
         fps: float,
         output_path: Path,
-        fourcc_code: Literal["h264", "mp4v", "avc1", "XVID"] = "h264",
+        fourcc_code: Literal["h264", "mp4v", "avc1", "XVID"] = "avc1",
     ):
         """
         初期化
@@ -161,14 +161,15 @@ class VideoResults(list[ResultsProtocol]):
         output_path: str | Path,
         resize: float = 1,
         fps: float = 30,
+        fourcc_code: Literal["h264", "mp4v", "avc1", "XVID"] = "mp4v",
         trues: dict[int, dict[int, int | float]] | None = None,
     ):
         _size: tuple[int, int] = tuple(int(s * resize) for s in self.size[::-1])
 
-        with VideoWriter(*_size, fps, Path(output_path)) as writer:
+        with VideoWriter(*_size, fps, Path(output_path), fourcc_code) as writer:
             with tqdm(total=len(self), desc="write frame", leave=True) as pbar:
                 _trues = {} if trues is None else trues
-                for frame in self:
+                for frame in sorted(self, key=lambda x: x.frame_no):
                     if resize != 1:
                         writer.write(
                             cv2.resize(
@@ -198,7 +199,7 @@ class VideoResults(list[ResultsProtocol]):
                 group = file.create_group(f"{frame.frame_no}")
 
                 # 属性
-                group.attrs["frame_no"] = frame.frame_no
+                group.attrs["frame_no"] = int(frame.frame_no)
                 group.attrs["path"] = frame.path
                 subgroup = group.create_group("speed")
                 for k, v in frame.speed.items():
@@ -252,7 +253,7 @@ class VideoResults(list[ResultsProtocol]):
                     speed={k: v for k, v in group["speed"].attrs.items()},
                     orig_img=orig_img,
                     boxes=group["boxes"][:],
-                    masks=group["masks"][:],
+                    masks=torch.tensor(group["masks"][:]),
                     ocrs=(
                         Nums(group["ocrs"][:], orig_img.shape[:2])
                         if "ocrs" in group.keys()

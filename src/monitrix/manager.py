@@ -31,10 +31,19 @@ class Model:
         source: Source | list[Source] | tuple[Source, ...],
         stream: bool = True,
         config: Config | None = None,
+        context_release: bool = True,
     ) -> list[ResultsProtocol]:
 
         return self.applies(
-            [_r for _r in self.detector.predict(source, stream=stream, config=config)]
+            [
+                _r
+                for _r in self.detector.predict(
+                    source,
+                    stream=stream,
+                    config=config,
+                    context_release=context_release,
+                )
+            ]
         )
 
 

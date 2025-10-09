@@ -43,6 +43,7 @@ class Detector(ABC):
         source: Source | list[Source] | tuple[Source, ...],
         stream: bool,
         config: Config | None,
+        context_release: bool = True,
     ) -> Generator[R, None, None] | list[R]:
         """検出の実行（推定実行）"""
 
@@ -53,9 +54,9 @@ class Detector(ABC):
             yield
         finally:
             if release:
+                gc.collect()
                 if torch.cuda is not None:
                     torch.cuda.empty_cache()
-                gc.collect()
 
 
 class PostProcess(ABC):
