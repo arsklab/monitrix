@@ -1,6 +1,10 @@
+import gc
+from typing import Literal, Any
+
 from torch import Tensor
 import torch
 import numpy as np
+from tqdm import tqdm
 
 from monitrix.abclass import (
     NumberReader,
@@ -13,6 +17,21 @@ from monitrix.abclass import (
 from monitrix.abclass import Source, R
 from monitrix.results_protocol import ResultsProtocol, BoxesProtocol, OcrsProtocol
 from monitrix.image.imageprocess import crop
+from monitrix.manager import Model, ImageGroupTextReader
+from monitrix.objectdetector import yolo
+from monitrix.postprocess import (
+    InclusionProperty,
+    InclusionConfig,
+    ThresholdConfig,
+    ClassConfFilter,
+    StationaryTracker,
+)
+from monitrix.numberdetector.projective import ProjectiveMatrixCV2
+from monitrix.numberdetector.geometry import coordinate_cv2jit
+from monitrix.numberdetector import eocr
+from monitrix.objectdetector.yolo import exResults
+from monitrix.videoresult.resultsobject import VideoResults
+from monitrix.postprocess import ConfidenceDefalut, IoU_Default
 
 
 class Model:
@@ -252,3 +271,117 @@ class ImageGroupTextReader:
             return values.detach()  # .clone()
         else:
             return torch.tensor(values)
+
+
+def get_model(
+    tracker: Literal["stationary", "botsort.yaml", "bytetrack.yaml"] = "stationary",
+    predict_config: dict[str, Any] | yolo.YOLOPredictConfig = yolo.YOLOPredictConfig(),
+    track_classconf_thresholds: (
+        dict[int, float] | float | ThresholdConfig
+    ) = ConfidenceDefalut,
+    track_iou_thresholds: dict[int, float] | float | ThresholdConfig = IoU_Default,
+    inclusion_ioa_thresholds: dict[int, float] | float | ThresholdConfig = 0.8,
+) -> Model:
+
+    if not isinstance(predict_config, yolo.YOLOPredictConfig):
+        predict_config = yolo.YOLOPredictConfig(**predict_config)
+    if not isinstance(inclusion_ioa_thresholds, ThresholdConfig):
+        inclusion_ioa_thresholds = ThresholdConfig(inclusion_ioa_thresholds)
+
+    match tracker:
+        case "stationary":
+            if not isinstance(track_classconf_thresholds, ThresholdConfig):
+                track_classconf_thresholds = ThresholdConfig(track_classconf_thresholds)
+            if not isinstance(track_iou_thresholds, ThresholdConfig):
+                track_iou_thresholds = ThresholdConfig(track_iou_thresholds)
+
+            init_config = yolo.YOLOInitConfig(
+                tracker=[
+                    ClassConfFilter(track_classconf_thresholds),  # confフィルタ
+                    StationaryTracker(
+                        track_iou_thresholds
+                    ),  # トラッキング（インスタンスid割り振り）
+                ],
+                default_config=predict_config,
+            )
+        case "botsort.yaml" | "bytetrack.yaml":
+            init_config = yolo.YOLOInitConfig(
+                tracker=tracker, default_config=predict_config
+            )
+    return Model(
+        yolo.YOLOc300(init_config),
+        # 後処理
+        [InclusionProperty(InclusionConfig(ioa=inclusion_ioa_thresholds))],  # 包含関係
+    )
+
+
+def get_textreader(
+    perspective: bool = False, batched: bool = True
+) -> ImageGroupTextReader:
+    return ImageGroupTextReader(
+        eocr.EasyocrNumberReader(
+            init_config=eocr.EasyocrInitConfig(
+                gpu=True, detector=True, cudnn_benchmark=True  # Falseに対応していない
+            ),
+            default_predict_conf=eocr.EasyocrPredictConfig(batch_size=16),
+        ),
+        result_type=eocr.Nums,
+        projecter=ProjectiveMatrixCV2,
+        coordinate=coordinate_cv2jit,
+        perspective=perspective,
+        aspect_ratio=4 / 3,
+        # bottom_margin_rate = 0.05,
+        batched=batched,
+    )
+
+
+class predictor:
+    def __init__(
+        self,
+        tracker: Literal["stationary", "botsort.yaml", "bytetrack.yaml"] = "stationary",
+        predict_config: (
+            dict[str, Any] | yolo.YOLOPredictConfig
+        ) = yolo.YOLOPredictConfig(),
+        track_classconf_thresholds: (
+            dict[int, float] | float | ThresholdConfig
+        ) = ConfidenceDefalut,
+        track_iou_thresholds: dict[int, float] | float | ThresholdConfig = IoU_Default,
+        inclusion_ioa_thresholds: dict[int, float] | float | ThresholdConfig = 0.8,
+        perspective: bool = False,
+        batched: bool = True,
+    ) -> None:
+        self.model = get_model(
+            tracker,
+            predict_config,
+            track_classconf_thresholds,
+            track_iou_thresholds,
+            inclusion_ioa_thresholds,
+        )
+        self.igtr = get_textreader(perspective, batched)
+
+    def detect(self, source) -> list[exResults]:
+        return list(self.model.predict(source))
+
+    def ocr(self, detects: list[exResults]) -> VideoResults:
+        with tqdm(total=len(detects), desc="read number", leave=True) as pbar:
+            with self.igtr.reader._cuda_context(True):
+                for k, result in enumerate(detects):
+                    try:
+                        self.igtr.apply(result, context_release=False)
+                    except Exception as e:
+                        print(k)
+                        print(e)
+                    finally:
+                        pbar.update()
+        return VideoResults(detects)
+
+    def predict(self, source) -> VideoResults:
+        return self.ocr(self.detect(source))
+
+    def release(self):
+        del self.model
+        del self.igtr
+
+        gc.collect()
+        if torch.cuda is not None:
+            torch.cuda.empty_cache()
